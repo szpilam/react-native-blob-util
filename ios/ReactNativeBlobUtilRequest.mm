@@ -12,6 +12,7 @@
 #import "ReactNativeBlobUtilConst.h"
 #import "ReactNativeBlobUtilFileTransformer.h"
 #import "ReactNativeBlobUtilReqBuilder.h"
+#import "ReactNativeBlobUtilCertificateHandler.h"
 
 #import <CommonCrypto/CommonDigest.h>
 
@@ -509,7 +510,13 @@ typedef NS_ENUM(NSUInteger, ResponseFormat) {
 - (void) URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential * _Nullable credantial))completionHandler
 {
     if ([[options valueForKey:CONFIG_TRUSTY] boolValue]) {
-        completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust]);
+        if (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
+            ReactNativeBlobUtilCertificateHandler *handler = [ReactNativeBlobUtilCertificateHandler shared];
+            [handler notifySecTrustReceived:challenge.protectionSpace.serverTrust completionHandler:completionHandler];
+        } else {
+            completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust]);
+        }
+        
     } else {
         completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust]);
     }
